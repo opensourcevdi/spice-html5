@@ -1204,6 +1204,35 @@ function new_video_cluster(stream, msg)
 
 function process_video_stream_data(stream, msg)
 {
+    if (stream.start_time == 0) {
+        const context = document.querySelector("canvas").getContext("2d");
+        const decoder = stream.decoder = new VideoDecoder({
+            output(frame) {
+                context.drawImage(frame, 0, 0, frame.displayWidth, frame.displayHeight);
+                frame.close();
+            },
+            error(v) {
+                console.error(v);
+            },
+        });
+        decoder.configure({
+            codec: "avc1.640028",
+            codedWidth: 1920,
+            codedHeight: 1080,
+            optimizeForLatency: true,
+            avc: {
+                format: "annexb",
+            },
+        });
+    }
+    stream.decoder.decode(
+        new EncodedVideoChunk({
+            timestamp: stream.start_time,
+            type: "key",
+            data: msg.data,
+        })
+    );
+
     if (stream.start_time == 0)
     {
         stream.start_time = msg.base.multi_media_time;
